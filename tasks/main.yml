@@ -1,0 +1,48 @@
+- name: install xhprof dependency
+  apt: name={{ item }} state=present
+  with_items:
+    - graphviz
+    - gcc
+    - php5-dev
+    - python-pip
+    - python-dev
+    - libmysqlclient-dev
+
+- name: install mysql python module 
+  pip: name=MySQL-python state=present
+  
+- name: pecl install xhprof
+  shell: pecl install -f xhprof
+  
+- name: copy xhprof.ini to /etc/php.d/
+  template: src=xhprof.ini dest=/etc/php5/conf.d/ owner=root group=root mode=0644
+  
+- name: create xhprof database
+  mysql_db: name=xhprof state=present login_host={{db_host}} login_password={{db_password}} login_user={{db_username}}
+  
+- name: check if xhprof.sql exists
+  stat: path=/root/xhprof.sql
+  register: st
+  
+- name: copy xhprof database to server
+  copy: src=xhprof.sql dest=/root/
+  when: st.stat.exists == false
+  
+- name: import xhprof database structure to database
+  shell: mysql -h {{db_host}} -u {{db_username}} -p{{db_password}} xhprof < /root/xhprof.sql
+  when: st.stat.exists == false
+
+- name: check if xhprof.sh exists
+  stat: path=/root/xhprof.sh
+  register: sb
+  
+- name: copy xhprof.sh to remote server
+  copy: src=xhprof.sh dest=/root/ owner=root group=root mode=0644
+  when: sb.stat.exists == false
+  
+- name: run xhprof.sh
+  shell:  sh /root/xhprof.sh {{web_user}} {{ansible_resource}}
+  when: sb.stat.exists == false
+  
+- name: copy configuration file for xhprof
+  template: src=config.php dest=/home/{{web_user}}/xhprof/xhprof_lib/ owner={{web_user}} group={{web_group}} mode=0644

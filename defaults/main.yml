@@ -1,0 +1,5 @@
+---
+#xhprof
+xhprof_namespace: magento
+xhprof_controlip_whitelist: 127.0.0.1
+xhprof_domain: localhost
